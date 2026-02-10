@@ -1,0 +1,18 @@
+# Dockerfile for Backend
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+# Environment variables will be overridden by docker-compose or .env
+ENV PORT=7002
+
+EXPOSE 7002
+
+# We use tsx to run the typescript file directly
+CMD ["npx", "tsx", "api/server.ts"]

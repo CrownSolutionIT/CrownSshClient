@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "7002:7002"
+    env_file:
+      - .env
+    environment:
+      - PORT=7002
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "7001:80"
+    environment:
+      - VITE_API_URL=http://localhost:7002
+      - VITE_WS_URL=ws://localhost:7002
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+    driver: bridge

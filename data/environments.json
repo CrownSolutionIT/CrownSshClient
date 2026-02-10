@@ -1,0 +1,29 @@
+[
+  {
+    "id": "env-dev",
+    "name": "Development"
+  },
+  {
+    "id": "env-stage",
+    "name": "Staging"
+  },
+  {
+    "id": "env-prod",
+    "name": "Production"
+  },
+  {
+    "id": "77c89913-d920-4cfc-9077-18991cb3c48e",
+    "name": "IVG",
+    "command": "echo '{{PASSWORD}}' | su -c 'cd /usr/local/freeswitch/bin/ && ps aux | grep freeswitch && pkill -9 freeswitch && sync && echo 3 > /proc/sys/vm/drop_caches && ./freeswitch'"
+  },
+  {
+    "id": "3fba718d-c2c5-4b98-a438-a35a4f9a90ff",
+    "name": "OPS",
+    "command": "echo '{{PASSWORD}}' | su -c 'cd /usr/local/freeswitch/bin/ && ps aux | grep freeswitch && pkill -9 freeswitch && sync && echo 3 > /proc/sys/vm/drop_caches && ./freeswitch'"
+  },
+  {
+    "id": "6ff58c06-54d8-4787-95ef-eafa5d8ff161",
+    "name": "VOSS",
+    "command": "echo '{{PASSWORD}}' | su -c 'cd /usr/local/freeswitch/bin/ && ps aux | grep freeswitch && pkill -9 freeswitch && sync && echo 3 > /proc/sys/vm/drop_caches && ./freeswitch'"
+  }
+]
