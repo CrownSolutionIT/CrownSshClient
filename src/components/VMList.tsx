@@ -47,7 +47,7 @@ export const VMList: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-900 text-zinc-100 border-r border-zinc-800 w-80">
+    <div className="flex flex-col h-full bg-zinc-900 text-zinc-100 border-b md:border-b-0 md:border-r border-zinc-800 w-full md:w-80">
       <div className="p-4 border-b border-zinc-800 flex justify-between items-center">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Server size={20} /> VMs

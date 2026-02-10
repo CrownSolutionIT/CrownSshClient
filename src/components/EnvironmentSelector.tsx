@@ -44,7 +44,7 @@ export const EnvironmentSelector: React.FC = () => {
   };
 
   return (
-    <div className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col h-full">
+    <div className="w-full md:w-64 bg-zinc-950 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col h-full">
       {/* User Info Section */}
       <div className="p-4 border-b border-zinc-800 bg-zinc-900/30">
         <div className="flex items-center gap-3">
