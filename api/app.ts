@@ -29,6 +29,9 @@ dotenv.config()
 
 const app: express.Application = express()
 
+// Trust proxy (required for Nginx/Cloudflare and secure cookies)
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:7001',
