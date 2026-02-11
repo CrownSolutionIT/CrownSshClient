@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useVMStore } from '../store/vmStore';
 import { useEnvStore } from '../store/envStore';
 import { Plus, Trash2, Server, CheckSquare, Square, Edit2, X } from 'lucide-react';

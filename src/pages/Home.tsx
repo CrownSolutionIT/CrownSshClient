@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { VMList } from "@/components/VMList";
 import { CommandExecutor } from "@/components/CommandExecutor";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { useVMStore } from "../store/vmStore";
 import { useEnvStore } from "../store/envStore";
 import { Layers, Server, Terminal } from "lucide-react";
@@ -22,20 +23,32 @@ export default function Home() {
   }, [fetchVMs, selectedEnvId]);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-black text-white overflow-hidden font-sans">
-      {/* Mobile: Environment Selector */}
-      <div className={`${activeTab === 'env' ? 'flex' : 'hidden'} md:flex flex-1 md:flex-none h-full overflow-hidden`}>
-        <EnvironmentSelector />
+    <div className="flex flex-col h-screen bg-black text-white overflow-hidden font-sans">
+      
+      {/* Top Bar with Search */}
+      <div className="h-14 border-b border-zinc-800 flex items-center px-4 bg-zinc-950 shrink-0">
+        <div className="font-bold text-lg mr-8 tracking-tight text-zinc-200">SSH<span className="text-blue-500">Manager</span></div>
+        <div className="flex-1 max-w-2xl mx-auto">
+          <GlobalSearch />
+        </div>
+        <div className="w-20"></div> {/* Spacer for balance */}
       </div>
 
-      {/* Mobile: VM List */}
-      <div className={`${activeTab === 'vm' ? 'flex' : 'hidden'} md:flex flex-1 md:flex-none h-full overflow-hidden`}>
-        <VMList />
-      </div>
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+        {/* Mobile: Environment Selector */}
+        <div className={`${activeTab === 'env' ? 'flex' : 'hidden'} md:flex flex-1 md:flex-none h-full overflow-hidden`}>
+          <EnvironmentSelector />
+        </div>
 
-      {/* Mobile: Command Executor */}
-      <div className={`${activeTab === 'exec' ? 'flex' : 'hidden'} md:flex flex-1 h-full overflow-hidden`}>
-        <CommandExecutor />
+        {/* Mobile: VM List */}
+        <div className={`${activeTab === 'vm' ? 'flex' : 'hidden'} md:flex flex-1 md:flex-none h-full overflow-hidden`}>
+          <VMList />
+        </div>
+
+        {/* Mobile: Command Executor */}
+        <div className={`${activeTab === 'exec' ? 'flex' : 'hidden'} md:flex flex-1 h-full overflow-hidden`}>
+          <CommandExecutor />
+        </div>
       </div>
 
       {/* Mobile Bottom Navigation */}

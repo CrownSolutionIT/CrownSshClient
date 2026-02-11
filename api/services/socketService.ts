@@ -16,7 +16,7 @@ export const initWebSocket = (server: Server) => {
   });
 };
 
-export const broadcast = (type: string, payload: any) => {
+export const broadcast = (type: string, payload: unknown) => {
   if (!wss) return;
   
   const message = JSON.stringify({ type, payload });

@@ -10,6 +10,7 @@ services:
       - .env
     environment:
       - PORT=7002
+      - NODE_ENV=production
       - REDIS_HOST=redis
     networks:
       - app-network

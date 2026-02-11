@@ -8,14 +8,13 @@ import express, {
   type NextFunction,
 } from 'express'
 import cors from 'cors'
-import path from 'path'
 import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import helmet from 'helmet'
+import compression from 'compression'
 import logger from './utils/logger.js'
 
 import authRoutes from './routes/auth.js'
@@ -24,8 +23,8 @@ import environmentRoutes from './routes/environments.js'
 import executionRoutes from './routes/execution.js'
 
 // for esm mode
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// const __filename = fileURLToPath(import.meta.url)
+// const __dirname = path.dirname(__filename)
 
 // load env
 dotenv.config()
@@ -34,6 +33,9 @@ const app: express.Application = express()
 
 // Security Middleware
 app.use(helmet())
+
+// Gzip Compression
+app.use(compression())
 
 // Trust proxy (required for Nginx/Cloudflare and secure cookies)
 app.use((req, res, next) => {
@@ -77,7 +79,7 @@ passport.serializeUser((user, done) => {
   done(null, user);
 });
 
-passport.deserializeUser((user: any, done) => {
+passport.deserializeUser((user: Express.User, done) => {
   done(null, user);
 });
 
@@ -109,7 +111,7 @@ app.use('/api/execute', executionRoutes)
  */
 app.use(
   '/api/health',
-  (req: Request, res: Response, next: NextFunction): void => {
+  (req: Request, res: Response): void => {
     res.status(200).json({
       success: true,
       message: 'ok',
@@ -120,7 +122,8 @@ app.use(
 /**
  * error handler middleware
  */
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({
     success: false,
     error: 'Server internal error',

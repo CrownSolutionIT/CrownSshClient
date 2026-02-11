@@ -15,7 +15,10 @@ const VMSchema: Schema = new Schema({
   username: { type: String, required: true },
   password: { type: String },
   port: { type: Number, default: 22 },
-  environmentId: { type: String }, // Storing as string to match existing frontend logic, or could be ObjectId ref
+  environmentId: { type: String, index: true }, // Indexed for performance
 });
+
+// Text index for search
+VMSchema.index({ name: 'text', ip: 'text', username: 'text' });
 
 export const VMModel = mongoose.model<IVM>('VM', VMSchema);

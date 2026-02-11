@@ -16,6 +16,18 @@ export const EnvironmentSelector: React.FC = () => {
 
   useEffect(() => {
     fetchEnvironments();
+    
+    const handleVMChange = () => {
+      fetchEnvironments();
+    };
+    
+    window.addEventListener('vm-added', handleVMChange);
+    window.addEventListener('vm-deleted', handleVMChange);
+    
+    return () => {
+      window.removeEventListener('vm-added', handleVMChange);
+      window.removeEventListener('vm-deleted', handleVMChange);
+    };
   }, [fetchEnvironments]);
 
   useEffect(() => {

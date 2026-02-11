@@ -26,8 +26,9 @@ export const executionWorker = new Worker(
         (data) => broadcast('output', { vmId: vm.id, data })
       );
       broadcast('status', { vmId: vm.id, status: 'success' });
-    } catch (error: any) {
-      logger.error(`Execution failed for VM ${vmId}: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Execution failed for VM ${vmId}: ${errorMessage}`);
       broadcast('status', { vmId: vm.id, status: 'error' });
       throw error;
     }

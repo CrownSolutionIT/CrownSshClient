@@ -7,7 +7,8 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   const environmentId = req.query.environmentId as string | undefined;
-  const vms = await vmService.getAll(environmentId);
+  const search = req.query.search as string | undefined;
+  const vms = await vmService.getAll(environmentId, search);
   res.json(vms);
 });
 

@@ -27,10 +27,18 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Custom nginx config to handle SPA routing and API proxy
 RUN echo 'server { \
     listen 80; \
+    gzip on; \
+    gzip_vary on; \
+    gzip_proxied any; \
+    gzip_comp_level 6; \
+    gzip_types text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml; \
+    \
     location / { \
         root /usr/share/nginx/html; \
         index index.html index.htm; \
         try_files $uri $uri/ /index.html; \
+        expires 1y; \
+        add_header Cache-Control "public, no-transform"; \
     } \
     location /api/ { \
         proxy_pass http://crownsshclient-backend:7002; \
