@@ -27,8 +27,8 @@ router.get('/google/callback', (req, res, next) => {
         if (saveErr) {
           console.error('Session save error:', saveErr);
         }
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:7001';
-        res.redirect(`${frontendUrl}/`);
+        // Use relative redirect to root, which will work for both dev (via proxy) and prod
+        res.redirect('/');
       });
     });
   })(req, res, next);

@@ -12,7 +12,7 @@ interface EnvState {
   selectEnvironment: (id: string) => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:7002';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const useEnvStore = create<EnvState>((set, get) => ({
   environments: [],
