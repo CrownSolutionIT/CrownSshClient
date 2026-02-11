@@ -20,11 +20,21 @@ export const useEnvStore = create<EnvState>((set, get) => ({
   isLoading: false,
 
   fetchEnvironments: async () => {
-    set({ isLoading: true });
+    // Only set loading on first load to prevent UI flicker on updates
+    if (get().environments.length === 0) {
+      set({ isLoading: true });
+    }
+    
     try {
       const res = await fetch(`${API_URL}/api/environments`);
       const data = await res.json();
-      set({ environments: data });
+      
+      // Compare to avoid unnecessary re-renders
+      const currentEnvs = get().environments;
+      if (JSON.stringify(data) !== JSON.stringify(currentEnvs)) {
+        set({ environments: data });
+      }
+
       // Ensure selectedEnvId is valid
       const current = get().selectedEnvId;
       if (data.length > 0 && !data.find((e: Environment) => e.id === current)) {

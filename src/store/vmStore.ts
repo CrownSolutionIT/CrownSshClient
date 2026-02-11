@@ -23,7 +23,7 @@ interface VMState {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:7002';
 
-export const useVMStore = create<VMState>((set) => ({
+export const useVMStore = create<VMState>((set, get) => ({
   vms: [],
   selectedVmIds: [],
   logs: [],
@@ -49,13 +49,24 @@ export const useVMStore = create<VMState>((set) => ({
   clearLogs: () => set({ logs: [], statuses: {} }),
 
   fetchVMs: async (envId) => {
+    const { vms, selectedVmIds } = get();
+    // Optimistic check: if we already have VMs for this env (filtered in memory), maybe don't fetch?
+    // But we need fresh data. 
+    // Let's implement simple caching or just rely on React Query / SWR in future.
+    // For now, to reduce "stutter", we can avoid clearing state immediately.
+    
     try {
       const url = envId 
         ? `${API_URL}/api/vms?environmentId=${envId}`
         : `${API_URL}/api/vms`;
       const res = await fetch(url);
-      const vms = await res.json();
-      set({ vms, selectedVmIds: [] }); // Clear selection when switching envs/reloading
+      const newVms = await res.json();
+      
+      // Only update if data changed to avoid re-renders? 
+      // JSON.stringify comparison is expensive but better than UI flicker for small datasets
+      if (JSON.stringify(newVms) !== JSON.stringify(vms)) {
+         set({ vms: newVms, selectedVmIds: [] });
+      }
     } catch (error) {
       console.error('Failed to fetch VMs', error);
     }
