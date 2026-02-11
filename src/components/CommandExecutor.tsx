@@ -26,10 +26,11 @@ export const CommandExecutor: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Direct connection to backend port 7002 for WebSocket
+    // Determine WS URL dynamically to support remote deployments
+    // We connect through the Nginx proxy (same host/port) using the /api/ path
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const hostname = window.location.hostname;
-    const wsUrl = `${protocol}//${hostname}:7002`;
+    const host = window.location.host; // Includes hostname and port
+    const wsUrl = `${protocol}//${host}/api/`;
 
     console.log(`Connecting to WebSocket at: ${wsUrl}`);
     const ws = new WebSocket(wsUrl);
@@ -54,7 +55,7 @@ export const CommandExecutor: React.FC = () => {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      addLog({ vmId: 'system', type: 'error', data: '>>> Connection error. Check if backend is running on port 7002.\n', timestamp: Date.now() });
+      addLog({ vmId: 'system', type: 'error', data: '>>> Connection error. Unable to reach terminal server.\n', timestamp: Date.now() });
     };
 
     ws.onclose = () => {

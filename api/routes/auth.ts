@@ -12,7 +12,7 @@ router.get('/google/callback',
   (req, res) => {
     // Successful authentication, redirect home.
     // Dynamic redirect based on environment
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || '';
     res.redirect(`${frontendUrl}/`); 
   }
 );

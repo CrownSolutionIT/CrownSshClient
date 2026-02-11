@@ -3,7 +3,7 @@ import { Search, Server, X } from 'lucide-react';
 import { useEnvStore } from '../store/envStore';
 import { VM } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:7002';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // Simple in-memory search cache
 const searchCache = new Map<string, VM[]>();

@@ -45,10 +45,7 @@ app.use((req, res, next) => {
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:7001',
-    'http://localhost:5173' // Keep local dev
-  ],
+  origin: true, // Allow all origins in production if behind proxy, or configure via env
   credentials: true
 }))
 app.use(express.json({ limit: '10mb' }))
