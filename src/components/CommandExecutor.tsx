@@ -31,7 +31,7 @@ export const CommandExecutor: React.FC = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host; // Includes hostname and port
     const wsUrl = `${protocol}//${host}/api/`;
-
+    
     console.log(`Connecting to WebSocket at: ${wsUrl}`);
     const ws = new WebSocket(wsUrl);
     
