@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { environmentService } from '../services/environmentService.js';
+import { validate } from '../middleware/validate.js';
+import { createEnvironmentSchema, updateEnvironmentSchema } from '../schemas/environmentSchema.js';
 
 const router = Router();
 
@@ -8,17 +10,14 @@ router.get('/', async (req, res) => {
   res.json(envs);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', validate(createEnvironmentSchema), async (req, res) => {
   const { name } = req.body;
-  if (!name) {
-    res.status(400).json({ error: 'Name is required' });
-    return;
-  }
+  // Validation handled by middleware
   const newEnv = await environmentService.add(name);
   res.json(newEnv);
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate(updateEnvironmentSchema), async (req, res) => {
   const updatedEnv = await environmentService.update(req.params.id, req.body);
   if (!updatedEnv) {
     res.status(404).json({ error: 'Environment not found' });

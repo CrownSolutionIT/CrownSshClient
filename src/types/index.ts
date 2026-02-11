@@ -12,6 +12,7 @@ export interface Environment {
   id: string;
   name: string;
   command?: string; // Custom command for this environment
+  vmCount?: number;
 }
 
 export interface User {

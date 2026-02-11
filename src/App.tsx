@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, checkAuth } = useAuthStore();
+  const { user, isLoading, error, checkAuth } = useAuthStore();
   
   useEffect(() => {
     checkAuth();
@@ -13,6 +13,20 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center bg-black text-white">Loading...</div>;
+  }
+
+  if (error && !user) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-black text-white gap-4">
+        <div className="text-red-500">Unable to verify session: {error}</div>
+        <button 
+          onClick={() => checkAuth()}
+          className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   // For development, we can bypass auth if needed, but here we enforce it.

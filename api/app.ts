@@ -12,8 +12,11 @@ import path from 'path'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import session from 'express-session'
+import MongoStore from 'connect-mongo'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import helmet from 'helmet'
+import logger from './utils/logger.js'
 
 import authRoutes from './routes/auth.js'
 import vmRoutes from './routes/vms.js'
@@ -29,7 +32,14 @@ dotenv.config()
 
 const app: express.Application = express()
 
+// Security Middleware
+app.use(helmet())
+
 // Trust proxy (required for Nginx/Cloudflare and secure cookies)
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
+  next();
+});
 app.set('trust proxy', 1);
 
 app.use(cors({
@@ -47,7 +57,16 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'keyboard cat',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  store: MongoStore.create({
+    mongoUrl: process.env.mongo || 'mongodb://localhost:27017/sshclient', // Fallback for safety
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60, // = 14 days. Default
+    touchAfter: 24 * 3600 // time period in seconds: 24 hours
+  }),
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
+  }
 }));
 
 // Passport config

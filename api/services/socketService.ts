@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
+import logger from '../utils/logger.js';
 
 let wss: WebSocketServer | null = null;
 
@@ -7,10 +8,10 @@ export const initWebSocket = (server: Server) => {
   wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws) => {
-    console.log('Client connected');
+    logger.info('Client connected');
     
     ws.on('close', () => {
-      console.log('Client disconnected');
+      logger.info('Client disconnected');
     });
   });
 };

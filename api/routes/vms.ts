@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { vmService } from '../services/vmService.js';
+import { validate } from '../middleware/validate.js';
+import { createVMSchema, updateVMSchema } from '../schemas/vmSchema.js';
 
 const router = Router();
 
@@ -9,12 +11,12 @@ router.get('/', async (req, res) => {
   res.json(vms);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', validate(createVMSchema), async (req, res) => {
   const newVM = await vmService.add(req.body);
   res.json(newVM);
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate(updateVMSchema), async (req, res) => {
   const updatedVM = await vmService.update(req.params.id, req.body);
   if (!updatedVM) {
     res.status(404).json({ error: 'VM not found' });

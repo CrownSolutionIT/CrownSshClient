@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '../utils/logger.js';
 
 const connectDB = async () => {
   try {
@@ -12,9 +13,9 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 15000, // 15 seconds
       socketTimeoutMS: 45000, // 45 seconds
     });
-    console.log('MongoDB Connected...');
+    logger.info('MongoDB Connected...');
   } catch (err) {
-    console.error('Failed to connect to MongoDB', err);
+    logger.error('Failed to connect to MongoDB', err);
     // Exit process on DB failure to let Docker restart it
     process.exit(1); 
   }

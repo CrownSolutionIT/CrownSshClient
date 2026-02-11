@@ -4,6 +4,8 @@
 import app from './app.js';
 import { initWebSocket } from './services/socketService.js';
 import connectDB from './config/db.js';
+import './workers/executionWorker.js'; // Start the worker
+import logger from './utils/logger.js';
 
 /**
  * start server with port
@@ -14,7 +16,7 @@ const PORT = process.env.PORT || 7002;
 connectDB();
 
 const server = app.listen(PORT, () => {
-  console.log(`Server ready on port ${PORT}`);
+  logger.info(`Server ready on port ${PORT}`);
 });
 
 initWebSocket(server);
@@ -23,17 +25,17 @@ initWebSocket(server);
  * close server
  */
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received');
+  logger.info('SIGTERM signal received');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT signal received');
+  logger.info('SIGINT signal received');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });

@@ -101,7 +101,14 @@ export const EnvironmentSelector: React.FC = () => {
               }`}
               onClick={() => selectEnvironment(env.id)}
             >
-              <span className="font-medium text-sm truncate">{env.name}</span>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="font-medium text-sm truncate">{env.name}</span>
+                {env.vmCount !== undefined && (
+                  <span className="text-xs bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-full">
+                    {env.vmCount}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEdit(env); }}

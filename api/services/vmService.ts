@@ -1,4 +1,5 @@
 import { VMModel, IVM } from '../models/VM.js';
+import logger from '../utils/logger.js';
 
 // Re-export interface for compatibility, or define a compatible one
 export interface VM {
@@ -30,7 +31,7 @@ export const vmService = {
         };
       });
     } catch (error) {
-      console.error('Error fetching VMs:', error);
+      logger.error('Error fetching VMs:', error);
       return [];
     }
   },

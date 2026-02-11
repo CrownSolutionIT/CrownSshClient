@@ -1,7 +1,9 @@
 import { Environment, IEnvironment } from '../models/Environment.js';
+import { VMModel } from '../models/VM.js';
+import logger from '../utils/logger.js';
 
 export const environmentService = {
-  async getAll(): Promise<IEnvironment[]> {
+  async getAll(): Promise<(IEnvironment & { vmCount: number })[]> {
     try {
       let envs = await Environment.find();
       
@@ -24,20 +26,25 @@ export const environmentService = {
         
         // Use insertMany for bulk creation
         envs = await Environment.insertMany(defaults);
-        console.log('Seeded default environments');
+        logger.info('Seeded default environments');
       }
       
       // Transform _id to id for frontend compatibility if needed, 
       // but usually JSON.stringify handles it if we use .toJSON() or just rely on frontend handling _id.
       // For now, let's just return the docs. The frontend might need to update 'id' to '_id' or we map it.
-      return envs.map(e => {
+      return await Promise.all(envs.map(async (e) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const obj = e.toObject() as any;
         obj.id = obj._id.toString();
-        return obj as IEnvironment;
-      });
+        
+        // Count VMs in this environment
+        const count = await VMModel.countDocuments({ environmentId: obj.id });
+        obj.vmCount = count;
+        
+        return obj as IEnvironment & { vmCount: number };
+      }));
     } catch (error) {
-      console.error('Error fetching environments:', error);
+      logger.error('Error fetching environments:', error);
       return [];
     }
   },
