@@ -104,10 +104,11 @@ export const VMList: React.FC = () => {
           {vms.length > 0 && (
             <button
               onClick={handleToggleSelectAll}
-              className="text-zinc-500 hover:text-blue-400 transition-colors"
+              className="flex items-center gap-1.5 text-zinc-500 hover:text-blue-400 transition-colors"
               title={allSelected ? "Unselect All" : "Select All"}
             >
               {allSelected ? <CheckSquare size={18} className="text-blue-500" /> : <Square size={18} />}
+              <span className="text-xs font-medium">{allSelected ? "Unselect All" : "Select All"}</span>
             </button>
           )}
         </div>
