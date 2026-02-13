@@ -33,7 +33,10 @@ export const executionWorker = new Worker(
       throw error;
     }
   },
-  { connection, concurrency: 5 }
+  { 
+    connection, 
+    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5', 10) 
+  }
 );
 
 executionWorker.on('completed', (job) => {

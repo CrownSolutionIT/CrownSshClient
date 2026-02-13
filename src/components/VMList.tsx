@@ -1,15 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useVMStore } from '../store/vmStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useEnvStore } from '../store/envStore';
-import { Plus, Trash2, Server, CheckSquare, Square, Edit2, X, Loader, Pin } from 'lucide-react';
+import { Plus, Server, CheckSquare, Square, X, Loader } from 'lucide-react';
 import { VM } from '../types';
 
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { VMListItem } from './VMListItem';
+
 export const VMList: React.FC = () => {
+  // Optimize selector to prevent unnecessary re-renders
   const { 
     vms, selectedVmIds, toggleVMSelection, selectAllVMs, deselectAllVMs, 
     addVM, updateVM, deleteVM, 
     fetchVMs, page, hasMore, isLoading 
-  } = useVMStore();
+  } = useVMStore(useShallow(state => ({
+    vms: state.vms,
+    selectedVmIds: state.selectedVmIds,
+    toggleVMSelection: state.toggleVMSelection,
+    selectAllVMs: state.selectAllVMs,
+    deselectAllVMs: state.deselectAllVMs,
+    addVM: state.addVM,
+    updateVM: state.updateVM,
+    deleteVM: state.deleteVM,
+    fetchVMs: state.fetchVMs,
+    page: state.page,
+    hasMore: state.hasMore,
+    isLoading: state.isLoading
+  })));
   const { selectedEnvId } = useEnvStore();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -18,27 +36,11 @@ export const VMList: React.FC = () => {
   const [formData, setFormData] = useState({ name: '', ip: '', username: '', password: '', port: 22 });
 
   // Infinite Scroll Observer
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const loadMore = useCallback(() => {
+    fetchVMs(selectedEnvId || undefined, page + 1);
+  }, [fetchVMs, selectedEnvId, page]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          fetchVMs(selectedEnvId || undefined, page + 1);
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '100px'
-      }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, page, selectedEnvId, fetchVMs]);
+  const observerTarget = useInfiniteScroll(loadMore, hasMore, isLoading);
 
   const resetForm = () => {
     setFormData({ name: '', ip: '', username: '', password: '', port: 22 });
@@ -46,7 +48,7 @@ export const VMList: React.FC = () => {
     setEditingId(null);
   };
 
-  const handleEditClick = (vm: VM, e: React.MouseEvent) => {
+  const handleEditClick = useCallback((vm: VM, e: React.MouseEvent) => {
     e.stopPropagation();
     setFormData({
       name: vm.name,
@@ -57,9 +59,9 @@ export const VMList: React.FC = () => {
     });
     setEditingId(vm.id);
     setIsEditing(true);
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
       await updateVM(editingId, formData);
@@ -71,14 +73,45 @@ export const VMList: React.FC = () => {
       await addVM({ ...formData, environmentId: selectedEnvId });
     }
     resetForm();
+  }, [editingId, formData, selectedEnvId, updateVM, addVM]);
+
+  const handlePin = useCallback((id: string, isPinned: boolean) => {
+    updateVM(id, { isPinned });
+  }, [updateVM]);
+
+  const handleDelete = useCallback((id: string) => {
+    deleteVM(id);
+  }, [deleteVM]);
+
+  // Derived state for selection toggle
+  const allSelected = vms.length > 0 && selectedVmIds.length === vms.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      deselectAllVMs();
+    } else {
+      selectAllVMs();
+    }
   };
 
   return (
     <div className="flex flex-col h-full bg-zinc-900 text-zinc-100 border-b md:border-b-0 md:border-r border-zinc-800 w-full md:w-80">
       <div className="p-4 border-b border-zinc-800 flex justify-between items-center">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Server size={20} /> VMs
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Server size={20} /> VMs
+          </h2>
+          {/* Smart Selection Toggle */}
+          {vms.length > 0 && (
+            <button
+              onClick={handleToggleSelectAll}
+              className="text-zinc-500 hover:text-blue-400 transition-colors"
+              title={allSelected ? "Unselect All" : "Select All"}
+            >
+              {allSelected ? <CheckSquare size={18} className="text-blue-500" /> : <Square size={18} />}
+            </button>
+          )}
+        </div>
         <button
           onClick={() => { resetForm(); setIsEditing(!isEditing); }}
           className={`p-1 rounded transition-colors ${isEditing && !editingId ? 'bg-zinc-700 text-white' : 'hover:bg-zinc-800'}`}
@@ -142,62 +175,17 @@ export const VMList: React.FC = () => {
         </form>
       )}
 
-      <div className="p-2 border-b border-zinc-800 flex gap-2">
-        <button onClick={selectAllVMs} className="text-xs text-zinc-400 hover:text-white">Select All</button>
-        <button onClick={deselectAllVMs} className="text-xs text-zinc-400 hover:text-white">None</button>
-      </div>
-
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {vms.map((vm) => (
-          <div
+          <VMListItem
             key={vm.id}
-            className={`group flex items-center justify-between p-2 rounded cursor-pointer ${
-              selectedVmIds.includes(vm.id) ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'
-            }`}
-            onClick={() => toggleVMSelection(vm.id)}
-          >
-            <div className="flex items-center gap-3 overflow-hidden">
-              {/* Always show Pin if pinned, otherwise show selection checkbox */}
-              {vm.isPinned && !selectedVmIds.includes(vm.id) ? (
-                 <Pin size={16} className="text-yellow-500 flex-shrink-0" fill="currentColor" />
-              ) : selectedVmIds.includes(vm.id) ? (
-                <CheckSquare size={16} className="text-blue-500 flex-shrink-0" />
-              ) : (
-                <Square size={16} className="text-zinc-600 flex-shrink-0" />
-              )}
-              <div className="truncate">
-                <div className="font-medium text-sm truncate">{vm.name || vm.ip}</div>
-                <div className="text-xs text-zinc-500 truncate">{vm.username}@{vm.ip}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  updateVM(vm.id, { isPinned: !vm.isPinned });
-                }}
-                className={`p-1 hover:text-yellow-400 transition-colors ${vm.isPinned ? 'text-yellow-500 opacity-100' : 'text-zinc-500'}`}
-                title={vm.isPinned ? "Unpin VM" : "Pin VM"}
-              >
-                <Pin size={14} fill={vm.isPinned ? "currentColor" : "none"} />
-              </button>
-               <button
-                onClick={(e) => handleEditClick(vm, e)}
-                className="p-1 hover:text-blue-400 transition-colors text-zinc-500"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if(confirm('Are you sure you want to delete this VM?')) deleteVM(vm.id);
-                }}
-                className="p-1 hover:text-red-400 transition-colors text-zinc-500"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
+            vm={vm}
+            isSelected={selectedVmIds.includes(vm.id)}
+            onToggle={toggleVMSelection}
+            onPin={handlePin}
+            onEdit={handleEditClick}
+            onDelete={handleDelete}
+          />
         ))}
         
         {/* Loading Indicator & Observer Target */}

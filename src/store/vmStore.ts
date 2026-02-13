@@ -8,7 +8,18 @@ interface CacheEntry {
 }
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+const MAX_CACHE_SIZE = 20;
 const vmCache = new Map<string, CacheEntry>();
+let currentFetchController: AbortController | null = null;
+
+// Helper to manage LRU Cache
+const setCache = (key: string, data: CacheEntry) => {
+  if (vmCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = vmCache.keys().next().value;
+    if (firstKey) vmCache.delete(firstKey);
+  }
+  vmCache.set(key, data);
+};
 
 interface VMState {
   vms: VM[];
@@ -16,7 +27,7 @@ interface VMState {
   activeTerminalVmId: string | null;
   logs: ExecutionLog[];
   statuses: Record<string, 'pending' | 'running' | 'success' | 'error'>;
-  
+
   // Pagination state
   page: number;
   hasMore: boolean;
@@ -119,17 +130,25 @@ export const useVMStore = create<VMState>((set, get) => ({
       }
     }
 
+    // Cancel previous request if active
+    if (currentFetchController) {
+      currentFetchController.abort();
+    }
+    currentFetchController = new AbortController();
+
     try {
       const params = new URLSearchParams();
       if (envId) params.append('environmentId', envId);
       params.append('page', page.toString());
       params.append('limit', '20');
 
-      const res = await fetch(`${API_URL}/api/vms?${params.toString()}`);
+      const res = await fetch(`${API_URL}/api/vms?${params.toString()}`, {
+        signal: currentFetchController.signal
+      });
       const { data, total } = await res.json();
       
       // Update cache
-      vmCache.set(cacheKey, { data, total, timestamp: Date.now() });
+      setCache(cacheKey, { data, total, timestamp: Date.now() });
 
       set((state) => {
         // If we are on page 1, strictly replace. If paging, append.
@@ -140,35 +159,35 @@ export const useVMStore = create<VMState>((set, get) => ({
         const uniqueVMs = Array.from(new Map(newVMs.map(item => [item.id, item])).values()) as VM[];
 
         // Pre-fetch next page if available
-      const hasNextPage = uniqueVMs.length < total;
-      if (hasNextPage) {
-           setTimeout(() => {
-               const nextParams = new URLSearchParams();
-               if (envId) nextParams.append('environmentId', envId);
-               nextParams.append('page', (page + 1).toString());
-               nextParams.append('limit', '20');
-               
-               // Just fetch to warm up cache/browser buffer, don't update state yet
-               // Better: let the IntersectionObserver handle the state update, 
-               // but we can warm the cache here.
-               const nextCacheKey = `${envId || 'all'}_page_${page + 1}`;
-               if (!vmCache.has(nextCacheKey)) {
-                   fetch(`${API_URL}/api/vms?${nextParams.toString()}`)
-                      .then(r => r.json())
-                      .then(({ data: nextData, total: nextTotal }) => {
-                          vmCache.set(nextCacheKey, { data: nextData, total: nextTotal, timestamp: Date.now() });
-                      })
-                      .catch(() => {}); // Ignore errors on prefetch
-               }
-           }, 500); // Small delay to prioritize main thread
-      }
+        const hasNextPage = uniqueVMs.length < total;
+        if (hasNextPage) {
+             setTimeout(() => {
+                 const nextParams = new URLSearchParams();
+                 if (envId) nextParams.append('environmentId', envId);
+                 nextParams.append('page', (page + 1).toString());
+                 nextParams.append('limit', '20');
+                 
+                 // Just fetch to warm up cache/browser buffer, don't update state yet
+                 // Better: let the IntersectionObserver handle the state update, 
+                 // but we can warm the cache here.
+                 const nextCacheKey = `${envId || 'all'}_page_${page + 1}`;
+                 if (!vmCache.has(nextCacheKey)) {
+                     fetch(`${API_URL}/api/vms?${nextParams.toString()}`)
+                        .then(r => r.json())
+                        .then(({ data: nextData, total: nextTotal }) => {
+                            vmCache.set(nextCacheKey, { data: nextData, total: nextTotal, timestamp: Date.now() });
+                        })
+                        .catch(() => {}); // Ignore errors on prefetch
+                 }
+             }, 500); // Small delay to prioritize main thread
+        }
 
-      return {
-        vms: uniqueVMs,
-        page,
-        hasMore: hasNextPage,
-        isLoading: false
-      };
+        return {
+          vms: uniqueVMs,
+          page,
+          hasMore: hasNextPage,
+          isLoading: false
+        };
       });
     } catch (error) {
       console.error('Failed to fetch VMs', error);

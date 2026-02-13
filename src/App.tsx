@@ -1,9 +1,19 @@
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import PinEntry from "@/pages/PinEntry";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
+
+// Lazy load pages for code splitting (Micro-optimization #4)
+const Home = lazy(() => import("@/pages/Home"));
+const Login = lazy(() => import("@/pages/Login"));
+const PinEntry = lazy(() => import("@/pages/PinEntry"));
+
+// Loading fallback component
+const LoadingScreen = () => (
+  <div className="flex h-screen items-center justify-center bg-black text-white">
+    <div className="animate-pulse">Loading...</div>
+  </div>
+);
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading, error, checkAuth, isPinVerified } = useAuthStore();
@@ -40,14 +50,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <PinEntry />;
   }
 
-  return <>{children}</>;
+  return <Suspense fallback={<LoadingScreen />}>{children}</Suspense>;
 }
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <Login />
+          </Suspense>
+        } />
         <Route path="/" element={
           <PrivateRoute>
             <Home />
