@@ -12,7 +12,12 @@ import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import helmet from 'helmet'
+import compression from 'compression'
+import { rateLimit } from 'express-rate-limit'
+import morgan from 'morgan'
 import logger from './utils/logger.js'
+import { AppError } from './utils/AppError.js'
 
 import authRoutes from './routes/auth.js'
 import vmRoutes from './routes/vms.js'
@@ -28,29 +33,36 @@ const app: express.Application = express()
 // Trust proxy (required for Nginx/Cloudflare and secure cookies)
 app.set('trust proxy', true);
 
-console.log('>>> App Initializing with FRONTEND_URL:', process.env.FRONTEND_URL);
+// Basic security & performance middleware
+app.use(helmet())
+app.use(compression())
 
-app.use((req, res, next) => {
-  // Debug headers for session troubleshooting
-  if (req.url.includes('/auth/me')) {
-    logger.info(`Session Debug [${req.method} ${req.url}]:`);
-    logger.info(`- Proto: ${req.protocol}`);
-    logger.info(`- Secure: ${req.secure}`);
-    logger.info(`- Cookies: ${req.headers.cookie ? 'Present' : 'None'}`);
-    logger.info(`- X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+// Request logging via Morgan and Winston
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, {
+  stream: {
+    write: (message) => logger.info(message.trim())
   }
-  next();
-});
+}));
 
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:7001',
-    'http://localhost:5173' // Keep local dev
-  ],
+    process.env.FRONTEND_URL,
+    process.env.VITE_API_URL
+  ].filter(Boolean) as string[],
   credentials: true
 }))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Rate limiting for auth routes to prevent brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Session config
 app.use(session({
@@ -59,15 +71,17 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.mongo || 'mongodb://localhost:27017/sshclient', // Fallback for safety
+    mongoUrl: process.env.mongo,
     collectionName: 'sessions',
     ttl: 14 * 24 * 60 * 60, // = 14 days. Default
     touchAfter: 24 * 3600 // time period in seconds: 24 hours
   }),
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production' || !!process.env.FRONTEND_URL?.startsWith('https'),
+  cookie: {
+    // Only use secure cookies if NODE_ENV is production and we are not in development mode.
+    // This avoids needing to check for 'localhost' specifically.
+    secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE === 'true',
     maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
-    sameSite: 'lax' // Lax is much more stable than 'none' for same-domain setups
+    sameSite: 'lax'
   }
 }));
 
@@ -75,11 +89,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => {
+passport.serializeUser((user: any, done) => {
   done(null, user);
 });
 
-passport.deserializeUser((user: Express.User, done) => {
+passport.deserializeUser((user: any, done) => {
   done(null, user);
 });
 
@@ -90,18 +104,18 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     // Use the public-facing URL for the callback
     callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback"
   },
-  (accessToken, refreshToken, profile, done) => {
-    // In a real app, you'd save user to DB here
-    return done(null, profile);
-  }));
+    (accessToken: string, refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
+      // In a real app, you'd save user to DB here
+      return done(null, profile);
+    }));
 } else {
-  console.warn("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET not set. OAuth will not work.");
+  logger.warn("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET not set. OAuth will not work.");
 }
 
 /**
  * API Routes
  */
-app.use('/api/auth', authRoutes)
+app.use('/api/auth', authLimiter, authRoutes)
 app.use('/api/vms', vmRoutes)
 app.use('/api/environments', environmentRoutes)
 app.use('/api/execute', executionRoutes)
@@ -123,11 +137,26 @@ app.use(
  * error handler middleware
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
-  res.status(500).json({
+app.use((error: any, req: Request, res: Response, _next: NextFunction) => {
+  const statusCode = error instanceof AppError ? error.statusCode : 500;
+  const message = error instanceof AppError ? error.message : 'Internal Server Error';
+
+  if (statusCode === 500) {
+    logger.error('Unhandled Error:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+  } else {
+    logger.warn(`Operational Error [${statusCode}]: ${message}`);
+  }
+
+  res.status(statusCode).json({
     success: false,
-    error: 'Server internal error',
-  })
+    error: message,
+    // Include stack in non-production environments
+    stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+  });
 })
 
 /**
@@ -136,7 +165,7 @@ app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
-    error: 'API not found',
+    error: `Route ${req.originalUrl} not found`,
   })
 })
 

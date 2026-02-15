@@ -17,7 +17,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:7002',
+        target: process.env.VITE_API_URL,
         changeOrigin: true,
         secure: false,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

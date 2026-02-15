@@ -8,7 +8,7 @@ export const EnvironmentSelector: React.FC = () => {
   const { environments, selectedEnvId, fetchEnvironments, addEnvironment, deleteEnvironment, selectEnvironment, updateEnvironment } = useEnvStore();
   const { fetchVMs } = useVMStore();
   const { user, logout } = useAuthStore();
-  
+
   const [isAdding, setIsAdding] = useState(false);
   const [newEnvName, setNewEnvName] = useState('');
   const [editingEnv, setEditingEnv] = useState<string | null>(null);
@@ -16,14 +16,14 @@ export const EnvironmentSelector: React.FC = () => {
 
   useEffect(() => {
     fetchEnvironments();
-    
+
     const handleVMChange = () => {
       fetchEnvironments();
     };
-    
+
     window.addEventListener('vm-added', handleVMChange);
     window.addEventListener('vm-deleted', handleVMChange);
-    
+
     return () => {
       window.removeEventListener('vm-added', handleVMChange);
       window.removeEventListener('vm-deleted', handleVMChange);
@@ -69,7 +69,7 @@ export const EnvironmentSelector: React.FC = () => {
           )}
           <div className="flex-1 overflow-hidden">
             <div className="text-sm font-medium truncate">{user?.displayName || 'User'}</div>
-            <button 
+            <button
               onClick={() => logout()}
               className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 mt-0.5"
             >
@@ -108,9 +108,8 @@ export const EnvironmentSelector: React.FC = () => {
         {environments.map((env) => (
           <div key={env.id} className="border-b border-zinc-900">
             <div
-              className={`flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-900 ${
-                selectedEnvId === env.id ? 'bg-zinc-900 border-l-2 border-blue-500' : 'border-l-2 border-transparent'
-              }`}
+              className={`group flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-900 ${selectedEnvId === env.id ? 'bg-zinc-900 border-l-2 border-blue-500' : 'border-l-2 border-transparent'
+                }`}
               onClick={() => selectEnvironment(env.id)}
             >
               <div className="flex items-center gap-2 overflow-hidden">
@@ -121,23 +120,34 @@ export const EnvironmentSelector: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+              <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEdit(env); }}
-                  className="p-1 hover:text-blue-400 text-zinc-500"
+                  className="p-1 hover:text-blue-400 text-zinc-500 transition-colors"
                   title="Edit Command"
                 >
                   <Settings size={14} />
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); deleteEnvironment(env.id); }}
-                  className="p-1 hover:text-red-400 text-zinc-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const pin = window.prompt(`Please enter the security key to delete the "${env.name}" environment:`);
+                    if (pin === null) return; // Cancelled
+
+                    if (useAuthStore.getState().verifyPin(pin)) {
+                      deleteEnvironment(env.id);
+                    } else {
+                      alert("Invalid security key. Deletion cancelled.");
+                    }
+                  }}
+                  className="p-1 hover:text-red-400 text-zinc-500 transition-colors"
+                  title="Delete Environment"
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
             </div>
-            
+
             {editingEnv === env.id && (
               <div className="p-2 bg-zinc-900/50 space-y-2">
                 <label className="text-xs text-zinc-500">Custom Command for {env.name}</label>

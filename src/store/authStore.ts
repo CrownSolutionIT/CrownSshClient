@@ -12,7 +12,7 @@ interface AuthState {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const REQUIRED_PIN = '676869';
+const REQUIRED_PIN = import.meta.env.VITE_REQUIRED_PIN || '676869';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -25,9 +25,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: true, error: null });
       // Include credentials to send cookies
       const res = await fetch(`${API_URL}/api/auth/me`, {
-        credentials: 'include' 
+        credentials: 'include'
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         set({ user: data.user, isLoading: false });
@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, { 
+      await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });

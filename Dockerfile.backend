@@ -10,9 +10,9 @@ RUN npm install
 COPY . .
 
 # Environment variables will be overridden by docker-compose or .env
+# Default to 7002 if not provided, but the code will use process.env.PORT
 ENV PORT=7002
-
-EXPOSE 7002
+EXPOSE $PORT
 
 # We use tsx to run the typescript file directly
 CMD ["npx", "tsx", "api/server.ts"]

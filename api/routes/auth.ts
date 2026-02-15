@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import passport from 'passport';
+import { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import logger from '../utils/logger.js';
 
 const router = Router();
 
@@ -10,7 +13,7 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 router.get('/google/callback', (req, res, next) => {
   passport.authenticate('google', (err: any, user: any, info: any) => {
     if (err) {
-      console.error('Passport auth error:', err);
+      logger.error('Passport auth error:', err);
       return res.redirect(`${process.env.FRONTEND_URL || ''}/login?error=${encodeURIComponent(err.message || 'Authentication failed')}`);
     }
     if (!user) {
@@ -18,37 +21,37 @@ router.get('/google/callback', (req, res, next) => {
     }
     req.logIn(user, (loginErr) => {
       if (loginErr) {
-        console.error('Passport login error:', loginErr);
+        logger.error('Passport login error:', loginErr);
         return res.redirect(`${process.env.FRONTEND_URL || ''}/login?error=${encodeURIComponent(loginErr.message || 'Login failed')}`);
       }
-      
+
       // Explicitly save session before redirecting to avoid race conditions with MongoDB store
       req.session.save((saveErr) => {
         if (saveErr) {
-          console.error('Session save error:', saveErr);
+          logger.error('Session save error:', saveErr);
         }
-        // Use relative redirect to root, which will work for both dev (via proxy) and prod
-        res.redirect('/');
+        // Use absolute redirect to FRONTEND_URL to ensure we stay on the correct port (7001)
+        res.redirect(`${process.env.FRONTEND_URL || '/'}`);
       });
     });
   })(req, res, next);
 });
 
 // Get current user
-router.get('/me', (req, res) => {
+router.get('/me', asyncHandler(async (req: Request, res: Response) => {
   if (req.isAuthenticated()) {
     res.json({ user: req.user });
   } else {
     res.status(401).json({ user: null });
   }
-});
+}));
 
 // Logout
-router.post('/logout', (req, res, next) => {
+router.post('/logout', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   req.logout((err) => {
     if (err) { return next(err); }
     res.json({ success: true });
   });
-});
+}));
 
 export default router;
