@@ -14,7 +14,7 @@ dist-ssr/
 *.local
 .vite/
 *.tsbuildinfo
-
+.trae
 # Editor and IDE
 .vscode/
 !.vscode/extensions.json
